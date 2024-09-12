@@ -17,6 +17,15 @@ interface User {
   avatar?: string;
 }
 
+interface CurrentUser {
+  role: string;
+  email: string;
+}
+
+interface UserProfile extends User {
+  key: string; // Add `key` to match the `usersWithKey` type
+}
+
 const roleOptions = ['Admin', 'Superuser', 'User'];
 
 const Dashboard: React.FC = () => {
@@ -24,9 +33,9 @@ const Dashboard: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isCreateUserModalVisible, setIsCreateUserModalVisible] = useState(false);
   const [isProfileModalVisible, setIsProfileModalVisible] = useState(false);
-  const [currentUser, setCurrentUser] = useState<{ role: string, email: string } | null>(null);
-  const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [selectedProfile, setSelectedProfile] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
+  const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null);
   const [newUserPassword, setNewUserPassword] = useState<string | null>(null);
 
   const navigate = useNavigate();
@@ -38,7 +47,7 @@ const Dashboard: React.FC = () => {
 
   const fetchUserData = async () => {
     try {
-      const response = await axios.get('https://refine-role-base-project.onrender.com/api/me', { headers: getAuthHeader() });
+      const response = await axios.get<CurrentUser>('https://refine-role-base-project.onrender.com/api/me', { headers: getAuthHeader() });
       setCurrentUser(response.data);
     } catch (error: any) {
       notification.error({ message: 'Failed to fetch user data', description: error.message });
@@ -49,11 +58,11 @@ const Dashboard: React.FC = () => {
   const fetchUsers = async () => {
     try {
       const endpoint = currentUser?.role === 'Admin' ? 'my-users' : 'users';
-      const response = await axios.get(`https://refine-role-base-project.onrender.com/api/${endpoint}`, { headers: getAuthHeader() });
+      const response = await axios.get<{ data: UserProfile[] }>(`https://refine-role-base-project.onrender.com/api/${endpoint}`, { headers: getAuthHeader() });
       console.log('Fetched Users Data:', response.data); // Log response data for debugging
-      const filteredUsers = response.data?.data.filter((user: any) => currentUser?.email !== user.email);
+      const filteredUsers = response.data.data.filter(user => currentUser?.email !== user.email);
       setAllUsers(filteredUsers);
-    } catch (error) {
+    } catch (error: any) {
       notification.error({ message: 'Failed to fetch users', description: error.message });
       console.error('Failed to fetch users:', error);
     }
@@ -76,7 +85,7 @@ const Dashboard: React.FC = () => {
     avatar: user.avatar || 'https://www.gravatar.com/avatar/default',
   }));
 
-  const handleEdit = (record: User) => {
+  const handleEdit = (record: UserProfile) => {
     setEditingUser(record);
     setIsModalVisible(true);
   };
@@ -86,7 +95,7 @@ const Dashboard: React.FC = () => {
     setEditingUser(null);
   };
 
-  const handleSave = async (values: any) => {
+  const handleSave = async (values: { role: string }) => {
     if (editingUser) {
       const endpoint = editingUser.role === 'Admin' 
         ? `https://refine-role-base-project.onrender.com/api/my-users/${editingUser.key}` 
@@ -104,9 +113,8 @@ const Dashboard: React.FC = () => {
       }
     }
   };
-  
 
-  const handleDelete = async (record: User) => {
+  const handleDelete = async (record: UserProfile) => {
     try {
       await axios.delete(`https://refine-role-base-project.onrender.com/api/users/${record.key}`, {
         headers: { 'Content-Type': 'application/json', ...getAuthHeader() }
@@ -124,7 +132,7 @@ const Dashboard: React.FC = () => {
     navigate('/login');
   };
 
-  const handleCreateUser = async (values: any) => {
+  const handleCreateUser = async (values: { email: string; role: string }) => {
     try {
       const password = uuidv4();
       const createData = {
@@ -140,7 +148,7 @@ const Dashboard: React.FC = () => {
       notification.success({ message: 'User created successfully' });
       setIsCreateUserModalVisible(false);
       fetchUsers();
-    } catch (error) {
+    } catch (error: any) {
       notification.error({ message: 'Failed to create user', description: error.message });
       console.error('Failed to create user:', error);
     }
@@ -169,7 +177,7 @@ const Dashboard: React.FC = () => {
     {
       title: 'Action',
       key: 'action',
-      render: (text: any, record: User) => (
+      render: (text: any, record: UserProfile) => (
         <>
           <Button icon={<EyeOutlined />} type="link" onClick={() => { setSelectedProfile(record); setIsProfileModalVisible(true); }} style={{ marginRight: 8 }}>
             View
@@ -201,7 +209,7 @@ const Dashboard: React.FC = () => {
         ].filter(Boolean)} />
       </Sider>
       <Layout style={{ padding: '0 24px', minHeight: 280 }}>
-        <Header className="site-layout-background" style={{ padding: 0,backgroundColor:"#fff" }}>
+        <Header className="site-layout-background" style={{ padding: 0, backgroundColor: "#fff" }}>
           <Title level={2}>Dashboard</Title>
         </Header>
         <Content style={{ padding: '24px', margin: 0, minHeight: 280 }}>
@@ -211,7 +219,7 @@ const Dashboard: React.FC = () => {
       </Layout>
 
       <Modal title="Edit User" visible={isModalVisible} onCancel={handleCancel} footer={null}>
-        <Form layout="vertical" onFinish={handleSave} initialValues={editingUser}>
+        <Form layout="vertical" onFinish={handleSave} initialValues={editingUser ? { role: editingUser.role } : {}}>
           <Form.Item name="role" label="Role" rules={[{ required: true, message: 'Please select a role' }]}>
             <Select>
               {roleOptions.map(role => (

@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AuthPage } from "@refinedev/antd";
 import { useNavigate } from "react-router-dom";
 import { authProvider } from "../../authProvider";
 import { notification } from "antd";
-import { FormInstance } from 'antd/es/form';
+import { AxiosError } from "axios";  // Import AxiosError for better error handling
 
 interface RegisterValues {
   username: string;
@@ -14,30 +14,45 @@ interface RegisterValues {
 
 export const Register: React.FC = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+
+  const handleFinish = async (values: RegisterValues) => {
+    setLoading(true);
+    try {
+      await authProvider.register(values);
+      
+      notification.success({
+        message: "Registration Successful",
+        description: "You have been registered successfully!",
+      });
+
+      navigate("/dashboard");
+    } catch (error) {
+      // Type guard to ensure error is an AxiosError
+      if (error instanceof AxiosError) {
+        // Handle AxiosError
+        notification.error({
+          message: "Registration Failed",
+          description: error.response?.data?.message || "An error occurred during registration.",
+        });
+      } else {
+        // Handle other types of errors
+        notification.error({
+          message: "Registration Failed",
+          description: (error as Error).message || "An error occurred during registration.",
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <AuthPage
       type="register"
       formProps={{
-        onFinish: async (values: RegisterValues) => {
-          try {
-            await authProvider.register(values);
-            
-            notification.success({
-              message: "Registration Successful",
-              description: "You have been registered successfully!",
-            });
-
-            navigate("/dashboard");
-          } catch (error) {
-            console.error("Registration failed:", error);
-
-            notification.error({
-              message: "Registration Failed",
-              description: (error as Error).message || "An error occurred during registration.",
-            });
-          }
-        },
+        onFinish: handleFinish,
+        // Other form props if needed
       }}
     />
   );

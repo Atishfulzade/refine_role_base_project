@@ -1,5 +1,5 @@
 import React from 'react';
-import { Authenticated, Refine, useGo, RefineProps } from "@refinedev/core";
+import { Authenticated, Refine, RefineProps } from "@refinedev/core";
 import { DevtoolsProvider } from "@refinedev/devtools";
 import { RefineKbar, RefineKbarProvider } from "@refinedev/kbar";
 import {

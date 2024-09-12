@@ -1,11 +1,39 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://refine-role-base-project.onrender.com/api";
 
-export const authProvider = {
-  login: async ({ email, password }: { email: string; password: string }) => {
+// Define TypeScript interfaces for request and response data
+interface LoginResponse {
+  token: string;
+  role: string;
+}
+
+interface RegisterResponse extends LoginResponse {}
+
+interface UserIdentityResponse {
+  username: string;
+  role: string;
+}
+
+interface ErrorResponse {
+  status: number;
+  message: string;
+}
+
+interface AuthProvider {
+  login: (params: { email: string; password: string }) => Promise<void>;
+  register: (params: { email: string; password: string }) => Promise<void>;
+  logout: () => Promise<void>;
+  checkError: (error: ErrorResponse) => Promise<void>;
+  checkAuth: () => Promise<void>;
+  getPermissions: () => Promise<string>;
+  getUserIdentity: () => Promise<{ username: string; role: string }>;
+}
+
+export const authProvider: AuthProvider = {
+  login: async ({ email, password }) => {
     try {
-      const response = await axios.post(`${API_URL}/login`, { email, password });
+      const response = await axios.post<LoginResponse>(`${API_URL}/login`, { email, password });
 
       const { token, role } = response.data;
 
@@ -15,14 +43,14 @@ export const authProvider = {
       localStorage.setItem("email", email);
 
       return Promise.resolve();
-    } catch (error:any) {
+    } catch (error: any) {
       return Promise.reject(error.response?.data?.message || "Login failed");
     }
   },
 
-  register: async ({ email, password }: { email: string; password: string }) => {
+  register: async ({ email, password }) => {
     try {
-      const response = await axios.post(`${API_URL}/register`, { email, password });
+      const response = await axios.post<RegisterResponse>(`${API_URL}/register`, { email, password });
 
       const { token, role } = response.data;
 
@@ -32,7 +60,7 @@ export const authProvider = {
       localStorage.setItem("email", email);
 
       return Promise.resolve();
-    } catch (error:any) {
+    } catch (error: any) {
       return Promise.reject(error.response?.data?.message || "Registration failed");
     }
   },
@@ -52,12 +80,12 @@ export const authProvider = {
       localStorage.removeItem("role");
 
       return Promise.resolve();
-    } catch (error:any) {
+    } catch (error: any) {
       return Promise.reject(error.response?.data?.message || "Logout failed");
     }
   },
 
-  checkError: async (error: { status: number }) => {
+  checkError: async (error) => {
     if (error.status === 401 || error.status === 403) {
       // Unauthorized or forbidden, clear auth data
       localStorage.removeItem("token");
@@ -102,7 +130,7 @@ export const authProvider = {
 
     if (token) {
       try {
-        const response = await axios.get(`${API_URL}/me`, {
+        const response = await axios.get<UserIdentityResponse>(`${API_URL}/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

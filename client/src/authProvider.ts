@@ -1,4 +1,5 @@
 import axios from "axios";
+import { AuthActionResponse, CheckResponse, OnErrorResponse, PermissionResponse, IdentityResponse } from "@refinedev/core";
 
 const API_URL = "https://refine-role-base-project.onrender.com/api";
 
@@ -20,17 +21,7 @@ interface ErrorResponse {
   message: string;
 }
 
-interface AuthProvider {
-  login: (params: { email: string; password: string }) => Promise<void>;
-  register: (params: { email: string; password: string }) => Promise<void>;
-  logout: () => Promise<void>;
-  checkError: (error: ErrorResponse) => Promise<void>;
-  checkAuth: () => Promise<void>;
-  getPermissions: () => Promise<string>;
-  getUserIdentity: () => Promise<{ username: string; role: string }>;
-}
-
-export const authProvider: AuthProvider = {
+export const authProvider: any = {
   login: async ({ email, password }) => {
     try {
       const response = await axios.post<LoginResponse>(`${API_URL}/login`, { email, password });
@@ -42,26 +33,9 @@ export const authProvider: AuthProvider = {
       localStorage.setItem("role", role);
       localStorage.setItem("email", email);
 
-      return Promise.resolve();
+      return { success: true };
     } catch (error: any) {
-      return Promise.reject(error.response?.data?.message || "Login failed");
-    }
-  },
-
-  register: async ({ email, password }) => {
-    try {
-      const response = await axios.post<RegisterResponse>(`${API_URL}/register`, { email, password });
-
-      const { token, role } = response.data;
-
-      // Optionally, store token and role after registration
-      localStorage.setItem("token", token);
-      localStorage.setItem("role", role);
-      localStorage.setItem("email", email);
-
-      return Promise.resolve();
-    } catch (error: any) {
-      return Promise.reject(error.response?.data?.message || "Registration failed");
+      return { success: false, error: error.response?.data?.message || "Login failed" };
     }
   },
 
@@ -79,24 +53,13 @@ export const authProvider: AuthProvider = {
       localStorage.removeItem("email");
       localStorage.removeItem("role");
 
-      return Promise.resolve();
+      return { success: true };
     } catch (error: any) {
-      return Promise.reject(error.response?.data?.message || "Logout failed");
+      return { success: false, error: error.response?.data?.message || "Logout failed" };
     }
   },
 
-  checkError: async (error) => {
-    if (error.status === 401 || error.status === 403) {
-      // Unauthorized or forbidden, clear auth data
-      localStorage.removeItem("token");
-      localStorage.removeItem("email");
-      localStorage.removeItem("role");
-      return Promise.reject();
-    }
-    return Promise.resolve();
-  },
-
-  checkAuth: async () => {
+  check: async () => {
     const token = localStorage.getItem("token");
 
     if (token) {
@@ -106,26 +69,30 @@ export const authProvider: AuthProvider = {
             Authorization: `Bearer ${token}`,
           },
         });
-
-        return Promise.resolve();
+        return { valid: true };  // Adjust according to CheckResponse
       } catch (error) {
         // If token is invalid, clear auth data
         localStorage.removeItem("token");
         localStorage.removeItem("email");
         localStorage.removeItem("role");
-        return Promise.reject();
+        return { valid: false, error: "Invalid token" };  // Adjust according to CheckResponse
       }
     } else {
-      return Promise.reject("No token found");
+      return { valid: false, error: "No token found" };  // Adjust according to CheckResponse
     }
+  },
+
+  onError: async (error) => {
+    console.error("An authentication error occurred:", error);
+    return { error: "An error occurred" };  // Adjust according to OnErrorResponse
   },
 
   getPermissions: async () => {
     const role = localStorage.getItem("role");
-    return role ? Promise.resolve(role) : Promise.reject("No role found");
+    return role ? { permissions: role } : { permissions: [], error: "No role found" };  // Adjust according to PermissionResponse
   },
 
-  getUserIdentity: async () => {
+  getIdentity: async () => {
     const token = localStorage.getItem("token");
 
     if (token) {
@@ -138,12 +105,22 @@ export const authProvider: AuthProvider = {
 
         const { username, role } = response.data;
 
-        return Promise.resolve({ username, role });
+        return { identity: { username, role } };  // Adjust according to IdentityResponse
       } catch (error) {
-        return Promise.reject("Failed to fetch user identity");
+        return { identity: null, error: "Failed to fetch user identity" };  // Adjust according to IdentityResponse
       }
     } else {
-      return Promise.reject("No token found");
+      return { identity: null, error: "No token found" };  // Adjust according to IdentityResponse
     }
+  },
+
+  forgotPassword: async (params) => {
+    // Implement forgotPassword if needed
+    return { success: true };  // Adjust according to AuthActionResponse
+  },
+
+  updatePassword: async (params) => {
+    // Implement updatePassword if needed
+    return { success: true };  // Adjust according to AuthActionResponse
   },
 };

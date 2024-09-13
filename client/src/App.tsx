@@ -1,5 +1,5 @@
-import React from 'react';
-import { Authenticated, Refine, RefineProps } from "@refinedev/core";
+import React from "react";
+import { Authenticated, Refine } from "@refinedev/core"; // No need for RefineProps
 import { DevtoolsProvider } from "@refinedev/devtools";
 import { RefineKbar, RefineKbarProvider } from "@refinedev/kbar";
 import {
@@ -60,11 +60,7 @@ const App: React.FC = () => {
                   {/* Authenticated Routes */}
                   <Route
                     element={
-                      <Authenticated
-                        fallback={<Outlet />}
-                        v3LegacyAuthProviderCompatible={true} // Add this prop
-                        key="authenticated-routes" // Provide a unique key if necessary
-                      >
+                      <Authenticated fallback={<Outlet />} key="authenticated-routes">
                         <ThemedLayoutV2
                           Header={Header}
                           Sider={(props) => <ThemedSiderV2 {...props} fixed />}
@@ -96,6 +92,6 @@ const App: React.FC = () => {
       </RefineKbarProvider>
     </BrowserRouter>
   );
-}
+};
 
 export default App;

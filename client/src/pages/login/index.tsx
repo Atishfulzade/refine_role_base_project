@@ -8,9 +8,10 @@ export const Login: React.FC = () => {
   const navigate = useNavigate(); // Using useNavigate hook for navigation
   const { open } = useNotification(); // Using useNotification for toast notifications
 
-  const handleLogin = async (values: { username: string; password: string }) => {
+  // Adjusting the values type to use 'email' instead of 'username'
+  const handleLogin = async (values: { email: string; password: string }) => {
     try {
-      await authProvider.login(values);
+      await authProvider.login(values); // Pass email and password here
 
       // Show success toast notification
       open?.({
@@ -37,7 +38,7 @@ export const Login: React.FC = () => {
     <AuthPage
       type="login"
       formProps={{
-        onFinish: handleLogin,
+        onFinish: handleLogin, // Now onFinish will pass 'email' and 'password'
       }}
     />
   );

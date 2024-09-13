@@ -60,7 +60,11 @@ const App: React.FC = () => {
                   {/* Authenticated Routes */}
                   <Route
                     element={
-                      <Authenticated fallback={<Outlet />}>
+                      <Authenticated
+                        fallback={<Outlet />}
+                        v3LegacyAuthProviderCompatible={true} // Add this prop
+                        key="authenticated-routes" // Provide a unique key if necessary
+                      >
                         <ThemedLayoutV2
                           Header={Header}
                           Sider={(props) => <ThemedSiderV2 {...props} fixed />}
